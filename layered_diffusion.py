@@ -13,9 +13,12 @@ from .lib_layerdiffusion.utils import (
     to_lora_patch_dict,
 )
 from .lib_layerdiffusion.models import TransparentVAEDecoder
+from comfy.cli_args import args
 
 
 layer_model_root = os.path.join(folder_paths.models_dir, "layer_model")
+if args.just_ui:
+    layer_model_root = os.path.join(os.path.dirname(args.data_dir), "models/layer_model")
 load_layer_model_state_dict = load_torch_file
 
 
