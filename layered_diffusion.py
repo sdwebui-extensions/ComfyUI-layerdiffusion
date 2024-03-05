@@ -25,6 +25,8 @@ else:
     if args.just_ui:
         layer_model_root = os.path.join(os.path.dirname(args.data_dir), "models/layer_model")
 load_layer_model_state_dict = load_torch_file
+if not os.path.exists(layer_model_root):
+    os.makedirs(layer_model_root, exist_ok=True)
 
 
 def calculate_weight_adjust_channel(func):
@@ -109,7 +111,7 @@ class LayeredDiffusionDecode:
     def decode(self, samples, images):
         if self.vae_transparent_decoder is None:
             if not os.path.exists(os.path.join(layer_model_root, 'vae_transparent_decoder.safetensors')) and os.path.exists('/stable-diffusion-cache/models/layer_model'):
-                os.system(f'cp -rf /stable-diffusion-cache/models/layer_model {layer_model_root}')
+                os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
             model_path = load_file_from_url(
                 url="https://huggingface.co/LayerDiffusion/layerdiffusion-v1/resolve/main/vae_transparent_decoder.safetensors",
                 model_dir=layer_model_root,
@@ -186,7 +188,7 @@ class LayeredDiffusionBase:
     ):
         """Patch model"""
         if not os.path.exists(os.path.join(layer_model_root, 'vae_transparent_decoder.safetensors')) and os.path.exists('/stable-diffusion-cache/models/layer_model'):
-            os.system(f'cp -rf /stable-diffusion-cache/models/layer_model {layer_model_root}')
+            os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
         model_path = load_file_from_url(
             url=self.model_url,
             model_dir=layer_model_root,
@@ -247,7 +249,7 @@ class LayeredDiffusionFG:
 
         # Patch unet
         if not os.path.exists(os.path.join(layer_model_root, 'vae_transparent_decoder.safetensors')) and os.path.exists('/stable-diffusion-cache/models/layer_model'):
-            os.system(f'cp -rf /stable-diffusion-cache/models/layer_model {layer_model_root}')
+            os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
         if method == LayerMethod.ATTN:
             return self.fg_attn.apply_layered_diffusion(model, weight)
         if method == LayerMethod.CONV:
