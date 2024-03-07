@@ -18,7 +18,7 @@ from .lib_layerdiffusion.models import TransparentVAEDecoder
 from comfy.cli_args import args
 
 
-if 'layer_model' in folder_paths.folder_names_and_paths:
+if "layer_model" in folder_paths.folder_names_and_paths:
     layer_model_root = get_folder_paths("layer_model")[0]
 else:
     layer_model_root = os.path.join(folder_paths.models_dir, "layer_model")
@@ -40,8 +40,9 @@ def calculate_weight_adjust_channel(func):
             alpha = p[0]
             v = p[1]
 
+            # The recursion call should be handled in the main func call.
             if isinstance(v, list):
-                v = (func(self, v[1:], v[0].clone(), key),)
+                continue
 
             if len(v) == 1:
                 patch_type = "diff"
@@ -99,7 +100,13 @@ class LayeredDiffusionDecode:
 
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"samples": ("LATENT",), "images": ("IMAGE",)}}
+        return {
+            "required": {
+                "samples": ("LATENT",),
+                "images": ("IMAGE",),
+                "sub_batch_size": ("INT", {"default": 16, "min": 1, "max": 4096, "step": 1}),
+            },
+        }
 
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "decode"
@@ -108,7 +115,12 @@ class LayeredDiffusionDecode:
     def __init__(self) -> None:
         self.vae_transparent_decoder = None
 
-    def decode(self, samples, images):
+    def decode(self, samples, images, sub_batch_size: int):
+        """
+        sub_batch_size: How many images to decode in a single pass.
+        See https://github.com/huchenlei/ComfyUI-layerdiffuse/pull/4 for more
+        context.
+        """
         if self.vae_transparent_decoder is None:
             if not os.path.exists(os.path.join(layer_model_root, 'vae_transparent_decoder.safetensors')) and os.path.exists('/stable-diffusion-cache/models/layer_model'):
                 os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
@@ -126,9 +138,17 @@ class LayeredDiffusionDecode:
                     else torch.float32
                 ),
             )
-        latent = samples["samples"]
         pixel = images.movedim(-1, 1)  # [B, H, W, C] => [B, C, H, W]
-        pixel_with_alpha = self.vae_transparent_decoder.decode_pixel(pixel, latent)
+        decoded = []
+        for start_idx in range(0, samples["samples"].shape[0], sub_batch_size):
+            decoded.append(
+                self.vae_transparent_decoder.decode_pixel(
+                    pixel[start_idx : start_idx + sub_batch_size],
+                    samples["samples"][start_idx : start_idx + sub_batch_size],
+                )
+            )
+        pixel_with_alpha = torch.cat(decoded, dim=0)
+
         # [B, C, H, W] => [B, H, W, C]
         pixel_with_alpha = pixel_with_alpha.movedim(1, -1)
         image = pixel_with_alpha[..., 1:]
@@ -145,8 +165,8 @@ class LayeredDiffusionDecodeRGBA(LayeredDiffusionDecode):
 
     RETURN_TYPES = ("IMAGE",)
 
-    def decode(self, samples, images):
-        image, mask = super().decode(samples, images)
+    def decode(self, samples, images, sub_batch_size: int):
+        image, mask = super().decode(samples, images, sub_batch_size)
         alpha = 1.0 - mask
         return JoinImageWithAlpha().join_image_with_alpha(image, alpha)
 
@@ -399,9 +419,9 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "LayeredDiffusionApply": "Layer Diffusion Apply",
-    "LayeredDiffusionCondApply": "Layer Diffusion Cond Apply",
-    "LayeredDiffusionDiffApply": "Layer Diffusion Diff Apply",
-    "LayeredDiffusionDecode": "Layer Diffusion Decode",
-    "LayeredDiffusionDecodeRGBA": "Layer Diffusion Decode (RGBA)",
+    "LayeredDiffusionApply": "Layer Diffuse Apply",
+    "LayeredDiffusionCondApply": "Layer Diffuse Cond Apply",
+    "LayeredDiffusionDiffApply": "Layer Diffuse Diff Apply",
+    "LayeredDiffusionDecode": "Layer Diffuse Decode",
+    "LayeredDiffusionDecodeRGBA": "Layer Diffuse Decode (RGBA)",
 }
