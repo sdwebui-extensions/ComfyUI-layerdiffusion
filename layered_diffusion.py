@@ -126,7 +126,8 @@ class LayeredDiffusionDecode:
         """
         if self.vae_transparent_decoder is None:
             if not os.path.exists(os.path.join(layer_model_root, 'vae_transparent_decoder.safetensors')) and os.path.exists('/stable-diffusion-cache/models/layer_model'):
-                os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
+                if not args.just_ui:
+                    os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
             model_path = load_file_from_url(
                 url="https://huggingface.co/LayerDiffusion/layerdiffusion-v1/resolve/main/vae_transparent_decoder.safetensors",
                 model_dir=layer_model_root,
@@ -217,7 +218,8 @@ class LayeredDiffusionBase:
     ):
         """Patch model"""
         if not os.path.exists(os.path.join(layer_model_root, 'vae_transparent_decoder.safetensors')) and os.path.exists('/stable-diffusion-cache/models/layer_model'):
-            os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
+            if not args.just_ui:
+                os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
         model_path = load_file_from_url(
             url=self.model_url,
             model_dir=layer_model_root,
@@ -278,7 +280,8 @@ class LayeredDiffusionFG:
 
         # Patch unet
         if not os.path.exists(os.path.join(layer_model_root, 'vae_transparent_decoder.safetensors')) and os.path.exists('/stable-diffusion-cache/models/layer_model'):
-            os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
+            if not args.just_ui:
+                os.system(f'cp -rf /stable-diffusion-cache/models/layer_model/* {layer_model_root}')
         if method == LayerMethod.ATTN:
             return self.fg_attn.apply_layered_diffusion(model, weight)
         if method == LayerMethod.CONV:
