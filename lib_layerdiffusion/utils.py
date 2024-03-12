@@ -109,9 +109,14 @@ def load_file_from_url(
         file_name = os.path.basename(parts.path)
     cached_file = os.path.abspath(os.path.join(model_dir, file_name))
     if not os.path.exists(cached_file):
-        print(f'Downloading: "{url}" to {cached_file}\n')
-        from torch.hub import download_url_to_file
-        download_url_to_file(url, cached_file, progress=progress)
+        if os.path.exists(f'/stable-diffusion-cache/models/layer_model/{file_name}'):
+            if not args.just_ui:
+                os.system(f'cp /stable-diffusion-cache/models/layer_model/{file_name} {cached_file}')
+                print(f'cp file {file_name} from cache')
+        if not os.path.exists(cached_file):
+            print(f'Downloading: "{url}" to {cached_file}\n')
+            from torch.hub import download_url_to_file
+            download_url_to_file(url, cached_file, progress=progress)
     return cached_file
 
 
