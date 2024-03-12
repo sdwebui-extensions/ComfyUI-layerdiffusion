@@ -5,6 +5,8 @@ import torch
 import os
 from urllib.parse import urlparse
 from typing import Optional
+from comfy.cli_args import args
+
 
 
 def rgba2rgbfp32(x):
