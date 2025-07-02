@@ -158,8 +158,8 @@ class AttentionSharingUnit(torch.nn.Module):
 
         self.control_signals = None
 
-    def forward(self, h, context=None, value=None):
-        transformer_options = self.transformer_options
+    def forward(self, h, context=None, value=None, transformer_options=None):
+        # transformer_options = self.transformer_options
 
         modified_hidden_states = einops.rearrange(
             h, "(b f) d c -> f b d c", f=self.frames
@@ -250,7 +250,7 @@ class AttentionSharingUnit(torch.nn.Module):
         def register_get_transformer_options(func):
             @functools.wraps(func)
             def forward(self, x, context=None, transformer_options={}):
-                cls.transformer_options = transformer_options
+                # cls.transformer_options = transformer_options
                 return func(self, x, context, transformer_options)
 
             return forward
